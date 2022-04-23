@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 import socket
 import threading
 import time
@@ -14,7 +15,7 @@ class Client(tk.Tk):
         super().__init__()
         self.title('TkChat Client')
 
-        self.text = tk.Text(self)
+        self.text = ScrolledText(self)
         self.text.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
 
         self.msg_row = tk.Frame(self)
@@ -36,15 +37,19 @@ class Client(tk.Tk):
         self.broadcast_worker_thread = threading.Thread(target=self.broadcast_worker, daemon=True)
         self.broadcast_worker_thread.start()
 
+    def log(self, msg):
+        self.text.insert(tk.END, msg)
+        self.text.see(tk.END)
+         
     def init_send_sock(self):
         self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.send_sock.connect((socket.gethostname(), MESSAGE_PORT))
-        self.text.insert('1.0', 'send socket connected\n')
+        self.log('send socket connected\n')
 
     def init_broadcast_sock(self):
         self.broadcast_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.broadcast_sock.connect((socket.gethostname(), BROADCAST_PORT))
-        self.text.insert('1.0', 'broadcast socket connected\n')
+        self.log('broadcast socket connected\n')
 
     def send_msg(self):
         if not self.send_sock:
@@ -60,7 +65,7 @@ class Client(tk.Tk):
 
             data = self.broadcast_sock.recv(1024)
             data = data.decode()
-            self.text.insert('1.0', f'{data}\n')
+            self.log(f'{data}\n')
 
 
 if __name__ == '__main__':

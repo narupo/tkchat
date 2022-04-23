@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 import socket
 import threading
 import time
@@ -14,7 +15,7 @@ class Server(tk.Tk):
         super().__init__()
         self.title('TkChat Server')
 
-        self.text = tk.Text(self)
+        self.text = ScrolledText(self)
         self.text.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
 
         self.init_recv_worker_sock()
@@ -27,6 +28,10 @@ class Server(tk.Tk):
         self.broadcast_worker_thread = threading.Thread(target=self.broadcast_worker, daemon=True)
         self.broadcast_worker_thread.start()
 
+    def log(self, msg):
+        self.text.insert(tk.END, msg)
+        self.text.see(tk.END)
+         
     def init_recv_worker_sock(self):
         # TCPソケットを作る
         self.recv_worker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,19 +41,19 @@ class Server(tk.Tk):
 
         # ソケットを接続待ちソケット（passive socket）にする
         self.recv_worker_sock.listen()
-        self.text.insert('1.0', 'receive worker socket is ready\n')
+        self.log('receive worker socket is ready\n')
 
     def init_broadcast_worker_sock(self):
         self.broadcast_worker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.broadcast_worker_sock.bind((socket.gethostname(), BROADCAST_PORT))
         self.broadcast_worker_sock.listen()
-        self.text.insert('1.0', 'broadcast worker socket is ready\n')
+        self.log('broadcast worker socket is ready\n')
 
     def recv_worker(self):
         while True:
             time.sleep(1)
 
-            self.text.insert('1.0', 'recv: accept...\n')
+            self.log('recv: accept...\n')
             client_sock, addr = self.recv_worker_sock.accept()
             client_sock.settimeout(10)
 
@@ -58,19 +63,19 @@ class Server(tk.Tk):
                 daemon=True,
             )
             th.start()
-            self.text.insert('1.0', 'accept new client socket for receive\n')
+            self.log('accept new client socket for receive\n')
 
     def broadcast_worker(self):
         while True:
             time.sleep(1)
 
-            self.text.insert('1.0', 'broadcast: accept...\n')
+            self.log('broadcast: accept...\n')
             client_sock, addr = self.broadcast_worker_sock.accept()
             client_sock.settimeout(3)
 
             # 接続してきたクライアントのソケットをリストに追加する
             self.broadcast_socks.append(client_sock)
-            self.text.insert('1.0', 'accept new client socket for broadcast\n')
+            self.log('accept new client socket for broadcast\n')
 
     def recv_client_worker(self, client_sock):
         while True:
@@ -86,7 +91,7 @@ class Server(tk.Tk):
                 continue
 
             msg = msg.decode()
-            self.text.insert('1.0', f'msg: {msg}\n')
+            self.log(f'msg: {msg}\n')
 
             # 各クライアントへメッセージをブロードキャスト
             self.broadcast(msg)
@@ -102,10 +107,10 @@ class Server(tk.Tk):
         for sock in self.broadcast_socks:
             try:
                 sock.send(msg)
-            except ConnectionResetError:
+            except (ConnectionResetError, socket.timeout):
                 continue
 
-        self.text.insert('1.0', 'done broadcast message\n')
+        self.log('done broadcast message\n')
 
 
 if __name__ == '__main__':
