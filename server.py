@@ -6,6 +6,8 @@ import threading
 import time
 
 
+# ここのポート番号はサーバーとクライアントで同じものを使用する
+# サーバーとクライアントで使用するポート番号が違うと接続エラーになる
 MESSAGE_PORT = 1234
 BROADCAST_PORT = 2234
 
